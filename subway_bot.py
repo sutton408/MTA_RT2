@@ -14,9 +14,9 @@ import sys
 # Set your OpenAI API Key here or in your environment variables
 # Note: Render recommends using environment variables for this.
 api_key = os.getenv("OPENAI_API_KEY") 
-if not api_key:
-    # If the environment variable is not set, use the hardcoded one (only for local testing)
-    api_key = "TEST VALUE"
+#if not api_key:
+ #   # If the environment variable is not set, use the hardcoded one (only for local testing)
+  #  api_key = "TEST VALUE"
 
 # Get MTA API Key from environment variables (CRITICAL for Render)
 MTA_API_KEY = os.getenv("MTA_API_KEY")
@@ -227,4 +227,5 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
