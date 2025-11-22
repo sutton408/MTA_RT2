@@ -167,7 +167,16 @@ tools = [
 # --- CORE LLM FUNCTION ---
 def get_llm_response(prompt, tools, tool_choice="auto"):
     """Handles the OpenAI API call with function calling."""
-    messages = [{"role": "user", "content": prompt}]
+# NEW SYSTEM MESSAGE: Instructs the LLM to use the tool
+    system_message = {
+        "role": "system", 
+        "content": "You are a helpful NYC Subway bot. ALWAYS use the 'get_subway_time' tool when a user asks for arrival times, station information, or train times for a specific subway line and station."
+    }
+    
+    messages = [
+        system_message,
+        {"role": "user", "content": prompt}
+    ]
     
     try:
         response = client.chat.completions.create(
@@ -227,6 +236,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
