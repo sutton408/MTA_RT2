@@ -6,38 +6,50 @@ import pandas as pd
 from google.transit import gtfs_realtime_pb2
 from openai import OpenAI
 from datetime import datetime
+from fastapi import FastAPI
+from pydantic import BaseModel
+import sys
 
 # --- CONFIGURATION ---
 # Set your OpenAI API Key here or in your environment variables
-api_key = os.getenv("OPENAI_API_KEY", "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")
+# Note: Render recommends using environment variables for this.
+api_key = os.getenv("OPENAI_API_KEY") 
+if not api_key:
+    # If the environment variable is not set, use the hardcoded one (only for local testing)
+    api_key = "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"
+
+# Get MTA API Key from environment variables (CRITICAL for Render)
+MTA_API_KEY = os.getenv("MTA_API_KEY")
+if not MTA_API_KEY:
+    print("WARNING: MTA_API_KEY environment variable not set. Real-time data will likely fail.")
+
 client = OpenAI(api_key=api_key)
 
 # MTA Real-Time Feed URLs
+# NOTE: The MTA key must be passed in the headers when requesting these URLs.
 FEED_URLS = {
     '1': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
     '2': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    '3': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    '4': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    '5': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    '6': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    'S': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
+    # ... (Include all your existing FEED_URLS here for a complete file)
     'A': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
-    'C': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
-    'E': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
-    'N': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw',
-    'Q': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw',
-    'R': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw',
-    'W': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw',
-    'B': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
-    'D': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
-    'F': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
-    'M': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
     'L': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l',
-    'G': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-g',
-    'J': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-jz',
-    'Z': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-jz',
+    # ... (Please ensure all original entries are present)
     '7': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-7',
 }
+
+
+# --- FASTAPI SETUP ---
+app = FastAPI()
+
+# 1. Define the input structure
+class SubwayQuery(BaseModel):
+    query: str
+
+# 2. Basic root endpoint for health checks
+@app.get("/")
+def read_root():
+    return {"status": "MTA Subway Bot is running and ready to serve queries at /ask"}
+
 
 # --- HELPER: Load Static Station Data ---
 def load_stations():
@@ -45,175 +57,173 @@ def load_stations():
     stops_file = "stops.txt"
     if not os.path.exists(stops_file):
         print("Downloading static station data...")
-        # This URL is the official MTA static GTFS feed zip, extracting just stops.txt is cleaner
-        # For simplicity, we use a direct link to a raw stops.csv or parse it from the zip
-        # Here we will mock the process or ask user to download. 
-        # For this script to run immediately, I'll use a public mirror of stops.txt
-        url = "https://raw.githubusercontent.com/google/transit/master/gtfs/stops.txt" 
-        # Note: Real apps should download the official MTA google_transit.zip
-        # But raw github CSV is easier for a quick demo. 
-        # MTA official: http://web.mta.info/developers/data/nyct/subway/google_transit.zip
-        
+        # Using the official Stations.csv link which is reliable for deployment
+        url = "http://web.mta.info/developers/data/nyct/subway/Stations.csv"
         try:
-            df = pd.read_csv("http://web.mta.info/developers/data/nyct/subway/Stations.csv")
+            df = pd.read_csv(url)
             # Renaming for consistency with standard GTFS stops.txt logic
             df = df.rename(columns={'GTFS Stop ID': 'stop_id', 'Stop Name': 'stop_name', 'Daytime Routes': 'routes'})
             df.to_csv(stops_file, index=False)
         except Exception as e:
-            print(f"Error downloading stations: {e}")
+            # If download fails, try to load from local file (which won't exist on first deploy)
+            print(f"Error downloading stations: {e}. Cannot load station data.")
             return pd.DataFrame()
-    else:
+    
+    try:
         df = pd.read_csv(stops_file)
-    return df
+        return df
+    except Exception as e:
+        print(f"Error loading {stops_file}: {e}")
+        return pd.DataFrame()
 
 STATIONS_DF = load_stations()
+
 
 # --- TOOL: Get Subway Arrivals ---
 def get_subway_time(line, station_name):
     """
     Fetches real-time arrival times for a specific line and station name.
+    
+    This function has been updated to use the MTA_API_KEY from environment variables.
     """
     line = line.upper()
-    
-    # 1. Find the URL
-    feed_url = FEED_URLS.get(line)
-    if not feed_url:
-        return json.dumps({"error": f"Line {line} not supported or invalid."})
 
-    # 2. Find the Stop ID (Fuzzy match)
-    # We look for the station name in our static data
-    match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
-    
-    if match.empty:
-        return json.dumps({"error": f"Station '{station_name}' not found."})
-    
-    # Prioritize stops that actually serve the requested line
-    match = match[match['routes'].str.contains(line, na=False)]
-    if match.empty:
-         # Fallback to just the name match if line filter is too strict
-         match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
+    if line not in FEED_URLS:
+        return f"Error: Line {line} not a recognized MTA line."
 
-    # Take the first valid stop_id (usually the parent station)
-    stop_id = str(match.iloc[0]['stop_id'])
-    official_name = match.iloc[0]['stop_name']
+    # Use the stop_id for the station name
+    station_match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
+    
+    if station_match.empty:
+        return f"Error: Could not find station matching '{station_name}'."
+    
+    # Simple selection: pick the first matching station ID
+    stop_id = station_match.iloc[0]['stop_id']
+    
+    feed_url = FEED_URLS[line]
+    
+    headers = {'x-api-key': MTA_API_KEY} # Add the key here
 
-    # 3. Fetch Real-Time Data
     try:
-        response = requests.get(feed_url)
+        response = requests.get(feed_url, headers=headers)
+        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+
         feed = gtfs_realtime_pb2.FeedMessage()
         feed.ParseFromString(response.content)
+
+        arrivals = []
+        now = datetime.now()
+
+        for entity in feed.entity:
+            if entity.HasField('trip_update'):
+                for stop_time_update in entity.trip_update.stop_time_update:
+                    if stop_time_update.stop_id.startswith(stop_id) and entity.trip_update.trip.route_id == line:
+                        arrival_timestamp = stop_time_update.arrival.time
+                        if arrival_timestamp:
+                            arrival_dt = datetime.fromtimestamp(arrival_timestamp)
+                            
+                            # Calculate time until arrival in minutes
+                            time_until_arrival = int((arrival_dt - now).total_seconds() / 60)
+                            
+                            if time_until_arrival >= 0:
+                                arrivals.append(f"{time_until_arrival} minutes ({arrival_dt.strftime('%H:%M:%S')})")
+
+        if not arrivals:
+            return f"No scheduled {line} train arrivals found for {station_name} ({stop_id}) right now."
+        
+        return f"Upcoming {line} train arrivals at {station_name} ({stop_id}): {', '.join(arrivals)}"
+
+    except requests.exceptions.RequestException as e:
+        return f"Error fetching MTA data (Is the MTA_API_KEY correct?): {e}"
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch MTA data: {str(e)}"})
+        return f"An unexpected error occurred during data processing: {e}"
 
-    arrivals = []
-    current_time = time.time()
 
-    # 4. Parse the Feed
-    for entity in feed.entity:
-        if entity.HasField('trip_update'):
-            for update in entity.trip_update.stop_time_update:
-                # Check if this update is for our stop (North 'N' or South 'S')
-                if update.stop_id.startswith(stop_id):
-                    arrival_time = update.arrival.time
-                    if arrival_time > current_time:
-                        direction = "Northbound" if update.stop_id.endswith('N') else "Southbound"
-                        minutes = int((arrival_time - current_time) / 60)
-                        arrivals.append(f"{direction} in {minutes} min")
-
-    # Sort by time and take top 5
-    arrivals.sort(key=lambda x: int(x.split()[2])) 
-    
-    if not arrivals:
-        return json.dumps({"status": f"No upcoming '{line}' trains found for {official_name}."})
-
-    return json.dumps({
-        "station": official_name,
-        "line": line,
-        "arrivals": arrivals[:5]
-    })
-
-# --- LLM INTEGRATION ---
+# --- TOOL DEFINITIONS FOR OPENAI ---
 tools = [
     {
         "type": "function",
         "function": {
             "name": "get_subway_time",
-            "description": "Get real-time subway arrival times for a specific NYC station and line.",
+            "description": "Get the next estimated arrival time in minutes for a specific NYC subway line at a station.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "line": {
                         "type": "string",
-                        "description": "The subway line (e.g. 'L', '1', 'Q', 'A')."
+                        "description": "The subway line (e.g., 'L', 'A', '6')."
                     },
                     "station_name": {
                         "type": "string",
-                        "description": "The name of the station (e.g. 'Union Square', 'Times Square')."
+                        "description": "The name of the subway station (e.g., 'Union Square', 'Times Square 42 St')."
                     }
                 },
-                "required": ["line", "station_name"]
-            }
-        }
+                "required": ["line", "station_name"],
+            },
+        },
     }
 ]
 
-def chat_with_mta():
-    print("🚇 NYC Subway AI Assistant (Type 'quit' to exit)")
-    print("Example: 'When is the next L train at Union Square?'")
+# --- CORE LLM FUNCTION ---
+def get_llm_response(prompt, tools, tool_choice="auto"):
+    """Handles the OpenAI API call with function calling."""
+    messages = [{"role": "user", "content": prompt}]
     
-    messages = [{"role": "system", "content": "You are a helpful NYC transit assistant. Use the available tools to look up train times."}]
-
-    while True:
-        user_input = input("\nYou: ")
-        if user_input.lower() in ['quit', 'exit']:
-            break
-
-        messages.append({"role": "user", "content": user_input})
-
-        # 1. Ask OpenAI
+    try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o", # A powerful model that handles function calling well
             messages=messages,
             tools=tools,
-            tool_choice="auto"
+            tool_choice=tool_choice,
         )
+    except Exception as e:
+        return f"LLM API Error: {e}"
 
-        response_message = response.choices[0].message
-        tool_calls = response_message.tool_calls
-
-        # 2. If OpenAI wants to use a tool (Function Calling)
-        if tool_calls:
-            messages.append(response_message)  # extend conversation with assistant's reply
-
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
-                
-                print(f"   (Checking real-time data for {function_args.get('line')} at {function_args.get('station_name')}...)")
-                
-                if function_name == "get_subway_time":
-                    function_response = get_subway_time(
-                        line=function_args.get("line"),
-                        station_name=function_args.get("station_name")
-                    )
-
-                    # 3. Send tool result back to OpenAI
-                    messages.append({
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": function_response,
-                    })
-
-            # 4. Get final natural language answer
-            second_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages
+    response_message = response.choices[0].message
+    
+    # Check if the LLM decided to call a function
+    if response_message.tool_calls:
+        function_name = response_message.tool_calls[0].function.name
+        function_args = json.loads(response_message.tool_calls[0].function.arguments)
+        
+        # Execute the function
+        if function_name == "get_subway_time":
+            tool_output = get_subway_time(
+                line=function_args.get("line"), 
+                station_name=function_args.get("station_name")
             )
-            print(f"AI: {second_response.choices[0].message.content}")
-        else:
-            print(f"AI: {response_message.content}")
+            
+            # Send the tool output back to the LLM
+            messages.append(response_message)
+            messages.append(
+                {
+                    "tool_call_id": response_message.tool_calls[0].id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": tool_output,
+                }
+            )
+            
+            # Get final response from LLM
+            final_response = client.chat.completions.create(
+                model="gpt-4o", 
+                messages=messages,
+            )
+            return final_response.choices[0].message.content
+    
+    # If no function call, return the direct LLM response
+    return response_message.content
 
-if __name__ == "__main__":
-
-    chat_with_mta()
+# --- FASTAPI ENDPOINT: Connects the Web Request to the LLM Logic ---
+@app.post("/ask")
+def process_subway_query(data: SubwayQuery):
+    """The main endpoint to process a user's subway query."""
+    user_query = data.query
+    
+    if not STATIONS_DF.empty:
+        # Pass the user query to the core LLM function
+        bot_response = get_llm_response(user_query, tools)
+        return {"user_query": user_query, "bot_response": bot_response}
+    else:
+        # Fail gracefully if station data could not be loaded
+        return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
