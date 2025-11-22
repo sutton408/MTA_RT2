@@ -9,7 +9,7 @@ from datetime import datetime
 
 # --- CONFIGURATION ---
 # Set your OpenAI API Key here or in your environment variables
-api_key = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
+api_key = os.getenv("OPENAI_API_KEY", "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")
 client = OpenAI(api_key=api_key)
 
 # MTA Real-Time Feed URLs
@@ -215,4 +215,5 @@ def chat_with_mta():
             print(f"AI: {response_message.content}")
 
 if __name__ == "__main__":
+
     chat_with_mta()
