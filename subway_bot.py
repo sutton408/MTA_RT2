@@ -16,7 +16,7 @@ import sys
 api_key = os.getenv("OPENAI_API_KEY") 
 if not api_key:
     # If the environment variable is not set, use the hardcoded one (only for local testing)
-    api_key = "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"
+    api_key = "TEST VALUE"
 
 # Get MTA API Key from environment variables (CRITICAL for Render)
 MTA_API_KEY = os.getenv("MTA_API_KEY")
@@ -227,3 +227,4 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
