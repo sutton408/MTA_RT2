@@ -1,1 +1,5 @@
-pip freeze > requirements.txt
+openai>=1.0.0
+requests
+pandas
+gtfs-realtime-bindings
+protobuf
