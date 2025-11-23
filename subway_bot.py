@@ -123,7 +123,7 @@ def get_subway_time(line, station_name):
     feed_url = FEED_URLS[line]
 
     try:
-        response = requests.get(feed_url, headers=headers)
+        response = requests.get(feed_url)
         response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
 
         feed = gtfs_realtime_pb2.FeedMessage()
@@ -254,6 +254,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
