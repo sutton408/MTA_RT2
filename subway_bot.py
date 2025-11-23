@@ -99,9 +99,19 @@ def get_subway_time(line, station_name, direction=None):
     if line not in FEED_URLS:
         return f"Error: Line {line} not a recognized MTA line."
 
-    # Use the stop_id for the station name
+    # 1. Use the stop_id for the station name
     station_match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
 
+    # 2. Handle failure FIRST
+    if station_match.empty:
+        return f"Error: Could not find station matching '{station_name}'. Please check the spelling."
+    
+    # 3. DEFINE the variable ONLY AFTER you know the match was successful
+    stop_id_root = station_match.iloc[0]['stop_id']
+
+
+
+    
     # ----------------------------------------------------
     # DEBUGGING CODE:
     print(f"DEBUG: Searching for '{station_name}'. Found {len(station_match)} matching stations.")
@@ -282,6 +292,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
