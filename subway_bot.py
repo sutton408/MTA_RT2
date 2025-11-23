@@ -101,8 +101,6 @@ def get_subway_time(line, station_name):
     stop_id = station_match.iloc[0]['stop_id']
     
     feed_url = FEED_URLS[line]
-    
-    headers = {'x-api-key': MTA_API_KEY} # Add the key here
 
     try:
         response = requests.get(feed_url, headers=headers)
@@ -236,6 +234,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
