@@ -244,7 +244,7 @@ def get_llm_response(prompt, tools, tool_choice="auto"):
         if function_name == "get_subway_time":
             tool_output = get_subway_time(
                 line=function_args.get("line"), 
-                station_name=function_args.get("station_name")
+                station_name=function_args.get("station_name"),
                 direction=function_args.get("direction") # <<< PASS THE NEW ARGUMENT
             )
             
@@ -282,6 +282,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
