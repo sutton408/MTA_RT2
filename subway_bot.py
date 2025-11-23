@@ -90,11 +90,9 @@ STATIONS_DF = load_stations()
 
 
 # --- TOOL: Get Subway Arrivals ---
-def get_subway_time(line, station_name):
+def get_subway_time(line, station_name, direction=None):
     """
-    Fetches real-time arrival times for a specific line and station name.
-    
-    This function has been updated to use the MTA_API_KEY from environment variables.
+    Fetches real-time arrival times for a specific line and station name, optionally filtering by direction.
     """
     line = line.upper()
 
@@ -103,8 +101,9 @@ def get_subway_time(line, station_name):
 
     # Use the stop_id for the station name
     station_match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
-    
-    # ADD THIS DEBUGGING CODE:
+
+    # ----------------------------------------------------
+    # DEBUGGING CODE:
     print(f"DEBUG: Searching for '{station_name}'. Found {len(station_match)} matching stations.")
     if not station_match.empty:
         print(f"DEBUG: Selected Stop ID: {station_match.iloc[0]['stop_id']}")
@@ -116,9 +115,33 @@ def get_subway_time(line, station_name):
     if station_match.empty:
         # Change the error message to something very clear for yourself:
         return f"Station Lookup FAILED for: '{station_name}'. Check spelling against stops.txt."
+    # END DEBUGGING CODE
+    # ----------------------------------------------------
     
     # Simple selection: pick the first matching station ID
     stop_id = station_match.iloc[0]['stop_id']
+
+    # ----------------------------------------------------
+    # NEW DIRECTIONAL LOGIC
+    # ----------------------------------------------------
+    
+    # Define the target Stop IDs based on the provided direction
+    target_stop_ids = []
+    
+    if direction and direction.upper() in ['N', 'S']:
+        # If direction is provided and valid, filter by the specific stop ID (e.g., 'A21N')
+        target_stop_ids = [f"{stop_id_root}{direction.upper()}"]
+        
+    else:
+        # If no direction is provided, search for both North and South
+        # Note: Some lines only use the root ID, so we include it as a fallback
+        target_stop_ids = [f"{stop_id_root}N", f"{stop_id_root}S", stop_id_root]
+        
+    # Print the IDs being searched (helpful for debugging)
+    print(f"DEBUG: Searching feed for Stop IDs: {target_stop_ids}")
+    # ----------------------------------------------------
+
+
     
     feed_url = FEED_URLS[line]
 
@@ -174,9 +197,13 @@ tools = [
                     "station_name": {
                         "type": "string",
                         "description": "The name of the subway station (e.g., 'Union Square', 'Times Square 42 St')."
+                    },
+                    "direction": {
+                        "type": "string",
+                        "description": "The direction of travel: 'N' for Northbound/Uptown or 'S' for Southbound/Downtown." 
                     }
                 },
-                "required": ["line", "station_name"],
+                "required": ["line", "station_name"], # Direction is optional, but highly recommended
             },
         },
     }
@@ -218,6 +245,7 @@ def get_llm_response(prompt, tools, tool_choice="auto"):
             tool_output = get_subway_time(
                 line=function_args.get("line"), 
                 station_name=function_args.get("station_name")
+                direction=function_args.get("direction") # <<< PASS THE NEW ARGUMENT
             )
             
             # Send the tool output back to the LLM
@@ -254,6 +282,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
