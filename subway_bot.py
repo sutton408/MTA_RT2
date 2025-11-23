@@ -36,9 +36,9 @@ FEED_URLS = {
     '6': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
     '7': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
     'S': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    'A': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace',
-    'C': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace', 
-    'E': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace',
+    'A': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
+    'C': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace', 
+    'E': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
     'L': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l',
     'B': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
     'D': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
@@ -104,8 +104,18 @@ def get_subway_time(line, station_name):
     # Use the stop_id for the station name
     station_match = STATIONS_DF[STATIONS_DF['stop_name'].str.contains(station_name, case=False, na=False)]
     
+    # ADD THIS DEBUGGING CODE:
+    print(f"DEBUG: Searching for '{station_name}'. Found {len(station_match)} matching stations.")
+    if not station_match.empty:
+        print(f"DEBUG: Selected Stop ID: {station_match.iloc[0]['stop_id']}")
+    else:
+        # Show what the bot *thinks* is in the data
+        print("DEBUG: No match found. First 5 stations in data:")
+        print(STATIONS_DF['stop_name'].head().tolist()) 
+
     if station_match.empty:
-        return f"Error: Could not find station matching '{station_name}'."
+        # Change the error message to something very clear for yourself:
+        return f"Station Lookup FAILED for: '{station_name}'. Check spelling against stops.txt."
     
     # Simple selection: pick the first matching station ID
     stop_id = station_match.iloc[0]['stop_id']
@@ -244,6 +254,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
