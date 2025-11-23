@@ -36,9 +36,9 @@ FEED_URLS = {
     '6': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
     '7': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
     'S': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs',
-    'A': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
-    'C': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace', 
-    'E': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace',
+    'A': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace',
+    'C': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace', 
+    'E': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct gtfs-ace',
     'L': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l',
     'B': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
     'D': 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm',
@@ -244,6 +244,7 @@ def process_subway_query(data: SubwayQuery):
     else:
         # Fail gracefully if station data could not be loaded
         return {"user_query": user_query, "bot_response": "Error: Static station data could not be loaded. Cannot look up arrivals."}
+
 
 
 
